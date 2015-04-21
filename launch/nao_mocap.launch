@@ -1,0 +1,15 @@
+<launch> 
+
+  <arg name="nao_ip" default="$(optenv NAO_IP 127.0.0.1)" />
+  <arg name="nao_port" default="$(optenv NAO_PORT 9559)" />
+
+  <node pkg="nao_mocap" type="nao_mocap_node" name="nao_mocap" output="screen">
+    <param name="updating_frequency" value="20" type="double"/>
+    <param name="nao_ip" value="$(arg nao_ip)" type="str"/>
+    <param name="nao_port" value="$(arg nao_port)" type="int"/>
+    <param name="x_tolerance" value="0.1" type="double"/>
+    <param name="y_tolerance" value="0.1" type="double"/>
+    <param name="yaw_tolerance" value="0.3" type="double"/>
+
+  </node>
+</launch>

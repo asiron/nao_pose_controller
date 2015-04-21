@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<package>
+  <name>nao_mocap</name>
+  <version>0.1.0</version>
+  <description>The nao_mocap package</description>
+
+  <maintainer email="maciej.zurad@gmail.com">Maciej Żurad</maintainer>
+  <license>MIT</license>
+
+  <url type="repository">https://github.com/Asiron/nao_mocap/</url>
+  <url type="bugtracker">https://github.com/Asiron/nao_mocap/issues</url>
+
+  <author email="maciej.zurad@gmail.com">Maciej Żurad</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>tf</build_depend>
+  <build_depend>naoqi_msgs</build_depend>
+  <build_depend>std_srvs</build_depend>
+
+  <run_depend>geometry_msgs</run_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>tf</run_depend>
+  <run_depend>actionlib</run_depend>
+  <run_depend>naoqi_msgs</run_depend>
+  <run_depend>std_srvs</run_depend>
+
+  <export>
+  </export>
+</package>
