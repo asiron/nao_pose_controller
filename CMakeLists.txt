@@ -5,12 +5,16 @@ set(CMAKE_CXX_FLAGS " -std=gnu++0x ${CMAKE_CXX_FLAGS}")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
+
 find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   naoqi_msgs
   roscpp
   tf
+  actionlib
   std_srvs
+  move_base_msgs
+  nav_msgs
 )
 
 find_package(NAOqi QUIET COMPONENTS
@@ -28,7 +32,7 @@ if( ${NAOqi_FOUND} AND ${Boost_FOUND} )
 
     catkin_package(
         INCLUDE_DIRS include
-        CATKIN_DEPENDS geometry_msgs roscpp tf naoqi_msgs std_srvs
+        CATKIN_DEPENDS geometry_msgs roscpp tf naoqi_msgs std_srvs actionlib move_base_msgs nav_msgs
     )
 
     include_directories(

@@ -13,7 +13,9 @@ NaoMocapNode::NaoMocapNode() :
   m_xTolerance(),
   m_yTolerance(),
   m_yawTolerance(),
-  m_taskId(0)
+  m_taskId(0),
+  m_moveBaseActionServer(m_nh, "move_base", boost::bind(&NaoMocapNode::moveBaseGoalCallback, this, _1), false),
+  m_followPathActionServer(m_nh, "follow_path", boost::bind(&NaoMocapNode::followPathGoalCallback, this, _1), false)
 
 {
   m_privateNh.param("updating_frequency", m_goalUpdatingFrequency, m_goalUpdatingFrequency);
@@ -114,7 +116,7 @@ void NaoMocapNode::bumperCallback(const naoqi_msgs::Bumper::ConstPtr& msg)
 
 void NaoMocapNode::updateGoalTimerCallback(const ros::TimerEvent& event)
 {
-  ROS_INFO("Timer callback!");
+  //ROS_INFO("Timer callback!");
 
   /* if(m_taskId != 0) {
     m_motionProxy->stop(m_taskId);
@@ -136,7 +138,10 @@ void NaoMocapNode::updateGoalTimerCallback(const ros::TimerEvent& event)
     return;
   }
 
+  ROS_INFO("Updating goal with: ( %.3f, %.3f ) theta: %.3f", newGoal.x, newGoal.y, newGoal.theta);
+
   m_taskId =  m_motionProxy->post.moveTo(newGoal.x, newGoal.y, newGoal.theta);
+  //m_cmdPosePub.publish(newGoal);
 }
 
 
@@ -146,10 +151,22 @@ bool NaoMocapNode::isGoalReached(const geometry_msgs::Pose2D& goal)
        (fabs(goal.y) < m_yTolerance) && 
        (fabs(goal.theta) < m_yawTolerance) )
   {
+    ROS_INFO("Goal reached! %f %f %f", goal.x, goal.y, goal.theta);
     return true;
   }
   return false;
 }
+
+void NaoMocapNode::moveBaseGoalCallback(const move_base_msgs::MoveBaseGoalConstPtr& goal)
+{
+  m_moveBaseActionServer.setSucceeded();
+}
+
+void NaoMocapNode::followPathGoalCallback(const naoqi_msgs::FollowPathGoalConstPtr& goal)
+{
+  m_followPathActionServer.setSucceeded();
+}
+
 
 void NaoMocapNode::startGoalExecution(geometry_msgs::Pose2D goal)
 {
@@ -165,8 +182,16 @@ void NaoMocapNode::abortCurrentGoal()
 
   m_isGoalRunning = false;
   ROS_INFO("Aborting goal");
-  //m_motionProxy->stop(m_taskId);
   m_motionProxy->stopMove();
+  m_motionProxy->stop(m_taskId);
+
+  /*
+  geometry_msgs::Pose2D stopGoal;
+  stopGoal.x = 0.0;
+  stopGoal.y = 0.0;
+  stopGoal.theta = 0.0;
+  m_cmdPosePub.publish(stopGoal);
+  */
   m_updateGoalTimer.stop();
 }
 
@@ -180,7 +205,9 @@ void NaoMocapNode::run()
   m_moveBaseSimpleGoalSub = m_nh.subscribe("/move_base_simple/goal", 1000 , &NaoMocapNode::moveBaseSimpleGoalCallback, this);
   m_trackedPoseSub = m_nh.subscribe("/mocap/nao_tracker/pose", 1000, &NaoMocapNode::trackedPoseStampedCallback, this);
   m_bumperSub = m_nh.subscribe("nao/bumper", 1000, &NaoMocapNode::bumperCallback, this);
-  m_moveBaseGoalPreemptServer = m_nh.advertiseService("abort_goal", &NaoMocapNode::abortCurrentGoalSrvCallback, this);
+  m_moveBaseGoalPreemptServer = m_nh.advertiseService("/move_base_simple/abort", &NaoMocapNode::abortCurrentGoalSrvCallback, this);
+
+  m_cmdPosePub = m_nh.advertise<geometry_msgs::Pose2D>("cmd_pose", 10);
 
   try {
     m_motionProxy  = boost::shared_ptr<AL::ALMotionProxy>(new AL::ALMotionProxy(m_naoIP, m_naoPort));
@@ -195,6 +222,8 @@ void NaoMocapNode::run()
     ROS_ERROR("Couldn't connect to ALRobotPostureProxy : %s", e.what());
     exit(1);
   }
+
+  m_moveBaseActionServer.start();
 
   ros::spin();
 }

@@ -11,5 +11,7 @@
     <param name="y_tolerance" value="0.1" type="double"/>
     <param name="yaw_tolerance" value="0.3" type="double"/>
 
+    <remap from="cmd_pose" to="nao/cmd_pose"/>
+
   </node>
 </launch>
