@@ -69,6 +69,17 @@ void NaoMocapNode::moveBaseSimpleGoalCallback(const geometry_msgs::PoseStamped::
   startGoalExecution(newGoal);
 }
 
+void NaoMocapNode::runPoseController(const std::vector<geometry_msgs::PoseStamped>& path)
+{
+  for (auto it = path.begin(); i != path.end(); ++i)
+  {
+    if (path + 1 == path.end()) {
+      ROS_INFO("Processing the past pose in path");
+    }
+  }
+}
+
+
 void NaoMocapNode::trackedPoseStampedCallback(const geometry_msgs::PoseStamped::ConstPtr& msg)
 {
   tf::Stamped<tf::Pose> trackedPose;
@@ -143,7 +154,6 @@ void NaoMocapNode::updateGoalTimerCallback(const ros::TimerEvent& event)
   m_taskId =  m_motionProxy->post.moveTo(newGoal.x, newGoal.y, newGoal.theta);
   //m_cmdPosePub.publish(newGoal);
 }
-
 
 bool NaoMocapNode::isGoalReached(const geometry_msgs::Pose2D& goal)
 {

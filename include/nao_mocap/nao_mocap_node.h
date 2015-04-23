@@ -3,6 +3,7 @@
 
 #include <mutex>
 #include <thread>
+#include <vector>
 
 #include <ros/ros.h>
 #include <actionlib/server/simple_action_server.h>
@@ -110,6 +111,9 @@ private:
   void moveBaseGoalCallback(const move_base_msgs::MoveBaseGoalConstPtr& goal);
 
   void followPathGoalCallback(const naoqi_msgs::FollowPathGoalConstPtr& goal);
+
+
+  void runPoseController(const std::vector<geometry_msgs::PoseStamped>& path);
 
 };
 
