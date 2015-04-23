@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package>
-  <name>nao_mocap</name>
+  <name>nao_pose_controller</name>
   <version>0.1.0</version>
-  <description>The nao_mocap package</description>
+  <description>The nao_pose_controller package</description>
 
   <maintainer email="maciej.zurad@gmail.com">Maciej Żurad</maintainer>
   <license>MIT</license>

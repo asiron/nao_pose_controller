@@ -1,10 +1,9 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(nao_mocap)
+project(nao_pose_controller)
 
-set(CMAKE_CXX_FLAGS " -std=gnu++0x ${CMAKE_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "-std=gnu++0x ${CMAKE_CXX_FLAGS}")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-
 
 find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
@@ -42,16 +41,22 @@ if( ${NAOqi_FOUND} AND ${Boost_FOUND} )
         ${NAOqi_INCLUDE_DIRS}
     )
 
-    add_executable(nao_mocap_node src/nao_mocap_node.cpp)
-    target_link_libraries(nao_mocap_node     
+    set(NAOPOSECONTROLLER_SOURCES
+      src/nao_pose_controller_node.cpp
+      src/nao_pose_controller.cpp
+    )
+
+
+    add_executable(nao_pose_controller ${NAOPOSECONTROLLER_SOURCES})
+    target_link_libraries(nao_pose_controller     
        ${catkin_LIBRARIES}
        ${NAOqi_LIBRARIES}
        ${Boost_LIBRARIES}
     )
 
-    add_dependencies(nao_mocap_node ${catkin_EXPORTED_TARGETS})
+    add_dependencies(nao_pose_controller ${catkin_EXPORTED_TARGETS})
 
-    install(TARGETS nao_mocap_node
+    install(TARGETS nao_pose_controller
       RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
     )
 else()
