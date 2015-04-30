@@ -12,53 +12,84 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   actionlib
   std_srvs
+  std_msgs
   move_base_msgs
   nav_msgs
 )
 
-find_package(NAOqi QUIET COMPONENTS
-    alcommon
-    alvision
-    alproxies
-    alerror
-    alvalue
+catkin_package(
+    INCLUDE_DIRS include
+    CATKIN_DEPENDS geometry_msgs roscpp tf naoqi_msgs std_srvs actionlib move_base_msgs nav_msgs std_msgs
 )
 
-find_package(Boost QUIET COMPONENTS)
+include_directories(
+    include
+    ${catkin_INCLUDE_DIRS}
+    ${Boost_INCLUDE_DIRS}
+)
 
-if( ${NAOqi_FOUND} AND ${Boost_FOUND} )
-  message(STATUS "NAOqi C++ SDK found, Proceed with building")
-
-    catkin_package(
-        INCLUDE_DIRS include
-        CATKIN_DEPENDS geometry_msgs roscpp tf naoqi_msgs std_srvs actionlib move_base_msgs nav_msgs
-    )
-
-    include_directories(
-        include
-        ${catkin_INCLUDE_DIRS}
-        ${Boost_INCLUDE_DIRS}
-        ${NAOqi_INCLUDE_DIRS}
-    )
-
-    set(NAOPOSECONTROLLER_SOURCES
-      src/nao_pose_controller_node.cpp
-      src/nao_pose_controller.cpp
-    )
+set(NAOPOSECONTROLLER_SOURCES
+  src/nao_pose_controller_node.cpp
+  src/nao_pose_controller.cpp
+)
 
 
-    add_executable(nao_pose_controller ${NAOPOSECONTROLLER_SOURCES})
-    target_link_libraries(nao_pose_controller     
-       ${catkin_LIBRARIES}
-       ${NAOqi_LIBRARIES}
-       ${Boost_LIBRARIES}
-    )
+add_executable(nao_pose_controller ${NAOPOSECONTROLLER_SOURCES})
+target_link_libraries(nao_pose_controller     
+   ${catkin_LIBRARIES}
+   ${Boost_LIBRARIES}
+)
 
-    add_dependencies(nao_pose_controller ${catkin_EXPORTED_TARGETS})
+add_dependencies(nao_pose_controller ${catkin_EXPORTED_TARGETS})
 
-    install(TARGETS nao_pose_controller
-      RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-    )
-else()
-  message(FATAL_ERROR "Could not find NAOqi C++ SDK; Aborting catkin")
-endif()
+install(TARGETS nao_pose_controller
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+
+#find_package(NAOqi QUIET COMPONENTS
+#    alcommon
+#    alvision
+#    alproxies
+#    alerror
+#    alvalue
+#)
+#
+#find_package(Boost QUIET COMPONENTS)
+#
+#if( ${NAOqi_FOUND} AND ${Boost_FOUND} )
+#    message(STATUS "NAOqi C++ SDK found, Proceed with building")
+#
+#    catkin_package(
+#        INCLUDE_DIRS include
+#        CATKIN_DEPENDS geometry_msgs roscpp tf naoqi_msgs std_srvs actionlib move_base_msgs nav_msgs std_msgs
+#    )
+#
+#    include_directories(
+#        include
+#        ${catkin_INCLUDE_DIRS}
+#        ${Boost_INCLUDE_DIRS}
+#        ${NAOqi_INCLUDE_DIRS}
+#    )
+#
+#    set(NAOPOSECONTROLLER_SOURCES
+#      src/nao_pose_controller_node.cpp
+#      src/nao_pose_controller.cpp
+#    )
+#
+#
+#    add_executable(nao_pose_controller ${NAOPOSECONTROLLER_SOURCES})
+#    target_link_libraries(nao_pose_controller     
+#       ${catkin_LIBRARIES}
+#       ${NAOqi_LIBRARIES}
+#       ${Boost_LIBRARIES}
+#    )
+#
+#    add_dependencies(nao_pose_controller ${catkin_EXPORTED_TARGETS})
+#
+#    install(TARGETS nao_pose_controller
+#      RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+#    )
+#else()
+#  message(FATAL_ERROR "Could not find NAOqi C++ SDK; Aborting catkin")
+#endif()

@@ -1,14 +1,8 @@
 <launch> 
 
-  <arg name="nao_ip" default="$(optenv NAO_IP 127.0.0.1)" />
-  <arg name="nao_port" default="$(optenv NAO_PORT 9559)" />
-
   <node pkg="nao_pose_controller" type="nao_pose_controller" name="nao_pose_controller" output="screen">
     
-    <param name="updating_frequency" value="20" type="double"/>
-    
-    <param name="nao_ip" value="$(arg nao_ip)" type="str"/>
-    <param name="nao_port" value="$(arg nao_port)" type="int"/>
+    <param name="updating_frequency" value="120" type="double"/>
 
     <param name="x_tolerance"   value="0.07" type="double"/>
     <param name="y_tolerance"   value="0.07" type="double"/>
@@ -18,7 +12,12 @@
     <param name="next_goal_y_accept_treshold"   value="0.15" type="double"/>
     <param name="next_goal_yaw_accept_treshold" value="0.2"  type="double"/>
 
-    <remap from="cmd_pose" to="nao/cmd_pose"/>
+    <param name="tf_polling_freq" value="30" type="str"/>
 
+    <param name="global_frame_id" value="map" type="str"/>
+    <param name="basefootprint_frame_id" value="base_footprint" type="str"/>
+
+    <param name="robot_pose_time_th" value="1.0" type="double"/>
   </node>
+
 </launch>
