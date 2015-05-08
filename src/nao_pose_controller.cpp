@@ -48,7 +48,6 @@ namespace SNT {
         m_privateNh.param("robot_pose_time_th", m_robotPoseTimeTh, m_robotPoseTimeTh);
 
 
-        m_globalFrameId = m_tfListener.resolve(m_globalFrameId);
         m_basefootprintFrameId = m_tfListener.resolve(m_basefootprintFrameId);
 
         ROS_INFO("Nao Motion Capture Control Node initialized...");
@@ -130,7 +129,7 @@ namespace SNT {
             }
 
             double lastRobotPostionTime = (ros::Time::now() - m_currentRobotPositon.stamp_).toSec();
-            if (lastRobotPostionTime > m_robotPoseTimeTh)
+            if (false && lastRobotPostionTime > m_robotPoseTimeTh)
             {
               ROS_WARN("Last robot position was %.3f ago, treshold is %.3f, aborting...", lastRobotPostionTime, m_robotPoseTimeTh);
               return false;
@@ -353,7 +352,7 @@ namespace SNT {
         if (true) {
           m_robotPositionPollTimer = m_nh.createTimer(ros::Duration(1.0 / m_tfPollingFreq), &PathFollower::updateRobotPositionCallback, this);      
         } else {
-          m_trackedPoseSub = m_nh.subscribe("/mocap/nao_tracker/pose", 1000, &PathFollower::trackedPoseStampedCallback, this);
+          m_trackedPoseSub = m_nh.subscribe("/blue_nao_marker/pose", 1000, &PathFollower::trackedPoseStampedCallback, this);
         }      
 
         m_moveBaseSimpleGoalSub = m_nh.subscribe("/move_base_simple/goal", 1000 , &PathFollower::moveBaseSimpleGoalCallback, this);
