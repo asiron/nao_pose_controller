@@ -1,5 +1,7 @@
 <launch> 
 
+  <arg name="nao_name"/>
+
   <node pkg="nao_pose_controller" type="nao_pose_controller" name="nao_pose_controller" output="screen">
     
     <param name="updating_frequency" value="120" type="double"/>
@@ -18,6 +20,12 @@
     <param name="basefootprint_frame_id" value="base_footprint" type="str"/>
 
     <param name="robot_pose_time_th" value="1.0" type="double"/>
+
+    <!-- If true position will be taken from base_footprint -->
+    <param name="position_from_basefootprint" value="true" type="bool"/>
+
+    <remap from="/marker/pose" to="$(arg nao_name)_marker/pose" />
+
   </node>
 
 </launch>

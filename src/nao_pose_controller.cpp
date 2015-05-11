@@ -10,16 +10,17 @@ namespace SNT {
         m_privateNh("~"),
         m_bumperState(false),
         m_footContact(true),
+        m_positionFromBaseFootPrint(true),
         m_goalUpdatingFrequency(100.0),
         m_currentRobotPositon(),
         m_currentGoalPosition(),
         m_tfPollingFreq(120.0),
-        m_xTolerance(),
-        m_yTolerance(),
-        m_yawTolerance(),
-        m_nextGoalXTolerance(),
-        m_nextGoalYTolerance(),
-        m_nextGoalYawTolerance(),
+        m_xTolerance(0.2),
+        m_yTolerance(0.2),
+        m_yawTolerance(0.2),
+        m_nextGoalXTolerance(0.2),
+        m_nextGoalYTolerance(0.2),
+        m_nextGoalYawTolerance(0.2),
         m_robotPoseTimeTh(),
         m_bodyPoseActionClient("body_pose_naoqi", true),
         m_globalFrameId("map"),
@@ -47,12 +48,14 @@ namespace SNT {
         m_privateNh.param("tf_polling_freq", m_tfPollingFreq, m_tfPollingFreq);
         m_privateNh.param("robot_pose_time_th", m_robotPoseTimeTh, m_robotPoseTimeTh);
 
+        m_privateNh.param("position_from_basefootprint", m_positionFromBaseFootPrint, m_positionFromBaseFootPrint);
 
         m_basefootprintFrameId = m_tfListener.resolve(m_basefootprintFrameId);
 
         ROS_INFO("Nao Motion Capture Control Node initialized...");
-        ROS_INFO("\t Tolerance values: X: %lf Y: %lf Theta: %lf", m_xTolerance, m_yTolerance, m_yawTolerance);
-        // TODO: add here more params
+        ROS_INFO("\t Final pose tolerance values: X: %lf Y: %lf Theta: %lf", m_xTolerance, m_yTolerance, m_yawTolerance);
+        ROS_INFO("\t Next goal tolerance values: X: %lf Y: %lf Theta: %lf", m_nextGoalXTolerance, m_nextGoalYTolerance, m_nextGoalYawTolerance);
+
       }
 
       PathFollower::~PathFollower()
@@ -153,9 +156,6 @@ namespace SNT {
             float angleDiff = std::atan2(std::sin(newGoal.theta), std::cos(newGoal.theta));
 
             ROS_DEBUG("Updating - new goal is ( %.3f %.3f ) theta: %.3f", newGoal.x, newGoal.y, angleDiff);
-
-            // TODO: remove at the end of testing
-            //m_taskId =  m_motionProxy->post.moveTo(newGoal.x, newGoal.y, newGoal.theta);
             m_cmdPosePub.publish(newGoal);
 
 
@@ -349,10 +349,10 @@ namespace SNT {
 
       void PathFollower::run()
       {
-        if (true) {
+        if (m_positionFromBaseFootPrint) {
           m_robotPositionPollTimer = m_nh.createTimer(ros::Duration(1.0 / m_tfPollingFreq), &PathFollower::updateRobotPositionCallback, this);      
         } else {
-          m_trackedPoseSub = m_nh.subscribe("/blue_nao_marker/pose", 1000, &PathFollower::trackedPoseStampedCallback, this);
+          m_trackedPoseSub = m_nh.subscribe("/marker/pose", 1000, &PathFollower::trackedPoseStampedCallback, this);
         }      
 
         m_moveBaseSimpleGoalSub = m_nh.subscribe("/move_base_simple/goal", 1000 , &PathFollower::moveBaseSimpleGoalCallback, this);

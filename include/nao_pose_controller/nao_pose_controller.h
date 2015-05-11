@@ -73,6 +73,8 @@ namespace SNT {
         bool m_bumperState;
         bool m_footContact;
 
+        bool m_positionFromBaseFootPrint;
+
         double m_xTolerance;
         double m_yTolerance;
         double m_yawTolerance; 
