@@ -100,6 +100,7 @@ namespace SNT {
         ros::Publisher  m_cmdPosePub;
         ros::Publisher  m_moveBaseGoalPub;
         ros::Publisher  m_visTargetPosePub;
+        ros::Publisher  m_visPathPub;
 
         ros::ServiceClient m_stopWalkClient;
 

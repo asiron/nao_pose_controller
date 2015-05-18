@@ -282,6 +282,8 @@ namespace SNT {
         
         ROS_DEBUG("INSIDE FOLLOW PATH GOAL CALLBACK");
 
+        m_visPathPub.publish(goal->path);
+
         bool result = runPoseController(goal->path.poses);
 
         if (result)
@@ -362,6 +364,7 @@ namespace SNT {
         m_cmdPosePub       = m_nh.advertise<geometry_msgs::Pose2D>("cmd_pose", 10);
         m_moveBaseGoalPub  = m_nh.advertise<move_base_msgs::MoveBaseActionGoal>("move_base/goal", 1);
         m_visTargetPosePub = m_nh.advertise<geometry_msgs::PoseStamped>("target_pose", 1);
+        m_visPathPub       = m_nh.advertise<nav_msgs::Path>("path", 1);
 
         m_stopWalkClient = m_nh.serviceClient<std_srvs::Empty>("stop_walk_srv");
         
