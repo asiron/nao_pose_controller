@@ -149,7 +149,7 @@ namespace SNT {
             else if ( last_pose && isGoalWithinTresholdOf(Treshold::LastPose, newGoal) )
             {
               stopWalking();
-              ROS_INFO("Last goal reached ! Sending success result to client");
+              ROS_INFO("Last goal reached !");
               return true;
             }
 
@@ -269,7 +269,7 @@ namespace SNT {
         path.push_back(goal->target_pose);
         bool result = runPoseController(path);
 
-        if (result)
+        if (result && finishWalking(10.0))
           m_moveBaseActionServer.setSucceeded(move_base_msgs::MoveBaseResult(), "Succeeded");
         else
           m_moveBaseActionServer.setAborted(move_base_msgs::MoveBaseResult(), "Failed");
@@ -286,7 +286,7 @@ namespace SNT {
 
         bool result = runPoseController(goal->path.poses);
 
-        if (result)
+        if (result && finishWalking(10.0))
           m_followPathActionServer.setSucceeded(naoqi_msgs::FollowPathResult(), "Succeeded");
         else
           m_followPathActionServer.setAborted(naoqi_msgs::FollowPathResult(), "Failed");
@@ -299,14 +299,23 @@ namespace SNT {
 
         std_srvs::Empty e;
         m_stopWalkClient.call(e);
-
       }
 
       bool PathFollower::startWalking(float max_prep_time)
       {
-        ROS_INFO("Going Stand Init position");
+        return goToPosture("StandInit", max_prep_time);
+      }
+
+      bool PathFollower::finishWalking(float max_prep_time)
+      {
+        return goToPosture("Stand", max_prep_time);
+      }
+
+      bool PathFollower::goToPosture(std::string posture_name, float max_prep_time)
+      {
+        ROS_INFO("Going %s position", posture_name.c_str());
         naoqi_msgs::BodyPoseWithSpeedGoal goal;
-        goal.posture_name = "StandInit";
+        goal.posture_name = posture_name;
         goal.speed = 0.7;
         m_bodyPoseActionClient.sendGoal(goal);
 
@@ -314,7 +323,7 @@ namespace SNT {
 
         if (finishedBeforeTimeout)
         {
-          ROS_INFO("\t Robot in StandInit posture");
+          ROS_INFO("\t Robot in %s posture", posture_name.c_str());
           return true;
         }
         else
@@ -322,7 +331,6 @@ namespace SNT {
           ROS_INFO("\t Robot couldn't get to desired posture in required %.3f s", max_prep_time);
           return false;
         }
-
       }
 
       void PathFollower::updateRobotPositionCallback(const ros::TimerEvent&)

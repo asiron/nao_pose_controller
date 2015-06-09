@@ -115,6 +115,8 @@ namespace SNT {
 
         void stopWalking();
         bool startWalking(float max_prep_time);
+        bool finishWalking(float max_prep_time);
+        bool goToPosture(std::string posture_name, float max_prep_time);
 
         void publishPoseToRviz(const geometry_msgs::PoseStamped& pose);
 
