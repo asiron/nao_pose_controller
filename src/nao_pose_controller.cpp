@@ -21,6 +21,7 @@ namespace SNT {
         m_nextGoalXTolerance(0.2),
         m_nextGoalYTolerance(0.2),
         m_nextGoalYawTolerance(0.2),
+        m_subgoalMinDistance(0.2),
         m_robotPoseTimeTh(),
         m_bodyPoseActionClient("body_pose_naoqi", true),
         m_globalFrameId("map"),
@@ -50,6 +51,8 @@ namespace SNT {
 
         m_privateNh.param("position_from_basefootprint", m_positionFromBaseFootPrint, m_positionFromBaseFootPrint);
 
+        m_privateNh.param("subgoal_min_dis", m_subgoalMinDistance, m_subgoalMinDistance);
+
         m_basefootprintFrameId = m_tfListener.resolve(m_basefootprintFrameId);
 
         ROS_INFO("Nao Motion Capture Control Node initialized...");
@@ -65,7 +68,6 @@ namespace SNT {
 
       void PathFollower::moveBaseSimpleGoalCallback(const geometry_msgs::PoseStamped::ConstPtr& msg) 
       {
-
         ROS_DEBUG("Received Move Base Simple message:");
         ROS_DEBUG("\t Position: %.2f %.2f %.2f", msg->pose.position.x, msg->pose.position.y, msg->pose.position.z);
         ROS_DEBUG("\t Quaternion: %.2f %.2f %.2f %.2f", msg->pose.orientation.x, msg->pose.orientation.y, msg->pose.orientation.z, msg->pose.orientation.w);
@@ -78,11 +80,99 @@ namespace SNT {
         m_moveBaseGoalPub.publish(wrapped_goal);
       }
 
+      std::vector<geometry_msgs::PoseStamped> PathFollower::getDirectionSubgoal(const geometry_msgs::PoseStamped& next_goal) const
+      {
+      
+          tf::Stamped<tf::Pose> next_goal_tf;
+          tf::poseStampedMsgToTF(next_goal,next_goal_tf);
+
+          auto current_robot_trans = m_currentRobotPositon.getOrigin();
+          auto current_robot_rot   = m_currentRobotPositon.getRotation();
+
+          auto next_subgoal_trans  = next_goal_tf.getOrigin();
+
+          ROS_INFO("ROBOT POSE x: %f, y: %f, z: %f", 
+            current_robot_trans.getX(),
+            current_robot_trans.getY(),
+            current_robot_trans.getZ());
+          
+          ROS_INFO("NEXT SUBGOAL POSE x: %f, y: %f, z: %f", 
+            next_subgoal_trans.getX(),
+            next_subgoal_trans.getY(),
+            next_subgoal_trans.getZ());
+
+          double vec_x, vec_y;
+          vec_x = next_subgoal_trans.getX() - current_robot_trans.getX();
+          vec_y = next_subgoal_trans.getY() - current_robot_trans.getY();
+
+          double new_yaw = std::atan2(vec_y, vec_x);
+
+          ROS_INFO("NEW YAW: %f", new_yaw);
+
+          auto new_subgoal_rot = tf::createQuaternionFromYaw(new_yaw);
+
+          double angle_diff = std::atan2(std::sin(new_yaw - tf::getYaw(current_robot_rot)),
+                                         std::cos(new_yaw - tf::getYaw(current_robot_rot)));
+
+          ROS_INFO("ANGLE DIFF: %f", angle_diff);
+
+          if (abs(M_PI - angle_diff) < 0.2 || abs(-M_PI - angle_diff) < 0.2)
+          {
+            ROS_INFO("Angle is almost 180 degrees, going backwards!");
+            new_subgoal_rot = current_robot_rot;
+          }
+
+          double distance = std::sqrt(vec_x * vec_x + vec_y * vec_y);
+          int step_num    = floor(distance / m_subgoalMinDistance);
+          double step     = distance / (double)step_num;
+          
+          tf::Vector3 step_vector(std::cos(new_yaw)*step, std::sin(new_yaw)*step, 0.0);
+
+          std::vector<geometry_msgs::PoseStamped> subgoals;
+          auto new_subgoal_trans = current_robot_trans;
+
+          ROS_INFO("STEP NUM %d DISTANCE %f SAVE_DIS %f", step_num, distance, m_subgoalMinDistance);
+
+          for (int i = 0; i < step_num; ++i)
+          {
+            geometry_msgs::PoseStamped new_subgoal_pose_msg;
+
+            ROS_INFO("X: Y: %.3f %.3f", new_subgoal_trans.getX(), new_subgoal_trans.getY());
+
+            tf::Stamped<tf::Pose> new_subgoal_tfpose;
+            new_subgoal_tfpose.setOrigin(new_subgoal_trans);
+            new_subgoal_tfpose.setRotation(new_subgoal_rot);
+
+            tf::poseStampedTFToMsg(new_subgoal_tfpose, new_subgoal_pose_msg);
+            new_subgoal_pose_msg.header.stamp    = ros::Time::now();
+            new_subgoal_pose_msg.header.frame_id = "map";
+            subgoals.push_back(new_subgoal_pose_msg);
+
+            new_subgoal_trans += step_vector;
+
+          }
+
+          /*
+          tf::Stamped<tf::Pose> second_new_subgoal_tfpose;
+          second_new_subgoal_tfpose.setOrigin(next_subgoal_trans);
+          second_new_subgoal_tfpose.setRotation(new_subgoal_rot);
+
+          tf::poseStampedTFToMsg(second_new_subgoal_tfpose, new_subgoal_pose_msg);
+          new_subgoal_pose_msg.header.stamp    = ros::Time::now();
+          new_subgoal_pose_msg.header.frame_id = "map";
+          subgoals.push_back(new_subgoal_pose_msg);
+          */
+          return subgoals;
+          
+      }
+
       bool PathFollower::runPoseController(const std::vector<geometry_msgs::PoseStamped>& path)
       {
         ros::Time begin = ros::Time::now();
 
-        if (path.size() == 0)
+        std::vector<geometry_msgs::PoseStamped> current_path = path;
+
+        if (current_path.size() == 0)
         {
           ROS_WARN("Received goal's path is empty, finishing goal's execution");
           return true;
@@ -91,11 +181,11 @@ namespace SNT {
         bool last_pose = false;
 
         int i = 0;
-        auto it = path.begin();
+        auto it = current_path.begin();
 
-        for (; it != path.end(); ++it, ++i)
+        for (; it != current_path.end(); ++it, ++i)
         {
-          ROS_INFO("Proccessing [ %d ] / [ %lu ] goal", i+1, path.size());
+          ROS_INFO("Proccessing [ %d ] / [ %lu ] goal", i+1, current_path.size());
 
           publishPoseToRviz(*it);
 
@@ -103,7 +193,7 @@ namespace SNT {
           tf::poseStampedMsgToTF(*it,next_pose_tf);
           m_currentGoalPosition = next_pose_tf;
 
-          if (it + 1 == path.end()) {
+          if (it + 1 == current_path.end()) {
             last_pose = true;
             ROS_INFO("Processing the last pose in path");
           }
@@ -114,11 +204,39 @@ namespace SNT {
           {
             if (m_followPathActionServer.isPreemptRequested() == true)
             {
-              ROS_WARN("Received goal preemption request, preempting....");
+              ROS_WARN("[FollowPath] Received goal preemption request, preempting....");
+              if (m_followPathActionServer.isNewGoalAvailable() == true)
+              {
+                ROS_WARN("[FollowPath] New goal is awaiting, accepting new goal");
+                stopWalking();
+                naoqi_msgs::FollowPathGoalConstPtr newGoal = m_followPathActionServer.acceptNewGoal();
+                current_path = newGoal->path.poses;
+                i = 0; it = current_path.begin();
+                break;
+              }
+              stopWalking();
               return false;
             }
 
-            if (m_bumperState == true )
+            if (m_moveBaseActionServer.isPreemptRequested() == true)
+            {
+              ROS_WARN("[MoveBase] Received goal preemption request, preempting....");
+              if (m_moveBaseActionServer.isNewGoalAvailable() == true)
+              {
+                ROS_WARN("[MoveBase] New goal is awaiting, accepting new goal");
+                stopWalking();
+                move_base_msgs::MoveBaseGoalConstPtr newGoal = m_moveBaseActionServer.acceptNewGoal();
+                current_path.clear();
+                current_path.push_back(newGoal->target_pose);
+                i = 0; it = current_path.begin();
+                break;
+              }
+              stopWalking();
+              return false;
+            }
+
+            // TODO: refactor bumper 
+            if (false && m_bumperState == true )
             {
               stopWalking();
               ROS_WARN("Robot hit bumper!, aborting...");
@@ -198,7 +316,7 @@ namespace SNT {
           y,p,r);
       }
 
-      geometry_msgs::Pose2D PathFollower::TFPoseToPose2D(tf::Transform tf_pose)
+      geometry_msgs::Pose2D PathFollower::TFPoseToPose2D(tf::Transform tf_pose) const
       {
         geometry_msgs::Pose2D pose2D;
 
@@ -222,7 +340,7 @@ namespace SNT {
         m_footContact = msg->data;
       }
 
-      bool PathFollower::isGoalWithinTresholdOf(const Treshold& treshold, const geometry_msgs::Pose2D& goal)
+      bool PathFollower::isGoalWithinTresholdOf(const Treshold& treshold, const geometry_msgs::Pose2D& goal) const
       {
 
         float xTreshold, yThreshold, yawTreshold;
@@ -254,6 +372,7 @@ namespace SNT {
           ROS_INFO("Goal within reach of treshold! ( %.3f, %.3f ) theta: %.3f", goal.x, goal.y, angleDiff);
           return true;
         }
+        ROS_DEBUG("Current distance to goal is ( %.3f, %.3f ) theta: %.3f", goal.x, goal.y, angleDiff);
         return false;
       }
 
@@ -265,9 +384,10 @@ namespace SNT {
 
         ROS_DEBUG("INSIDE MOVE BASE GOAL CALLBACK");
 
-        std::vector<geometry_msgs::PoseStamped> path;
-        path.push_back(goal->target_pose);
-        bool result = runPoseController(path);
+        auto subgoals = getDirectionSubgoal(goal->target_pose);
+        subgoals.push_back(goal->target_pose);
+
+        bool result = runPoseController(subgoals);
 
         if (result && finishWalking(10.0))
           m_moveBaseActionServer.setSucceeded(move_base_msgs::MoveBaseResult(), "Succeeded");
@@ -295,10 +415,10 @@ namespace SNT {
 
       void PathFollower::stopWalking()
       {
-        ROS_INFO("Aborting goal");
-
+        ROS_INFO("\t\t Stop walking invoked");
         std_srvs::Empty e;
         m_stopWalkClient.call(e);
+        ROS_INFO("\t\t Stop walking returned");
       }
 
       bool PathFollower::startWalking(float max_prep_time)
@@ -351,11 +471,24 @@ namespace SNT {
         }
       }
 
-      void PathFollower::publishPoseToRviz(const geometry_msgs::PoseStamped& pose)
+      void PathFollower::publishPoseToRviz(const geometry_msgs::PoseStamped& pose) const
       {
         ROS_INFO("Publishing pose for RVIZ");
         m_visTargetPosePub.publish(pose);
       }
+
+      void PathFollower::followPathPreemptCallback()
+      {
+        ROS_WARN("Follow Path goal was preempted!");
+        m_followPathActionServer.setPreempted();
+      }
+
+      void PathFollower::moveBasePreemptCallback()
+      {
+        ROS_WARN("Move base goal was preempted!");
+        m_moveBaseActionServer.setPreempted();
+      }
+
 
       void PathFollower::run()
       {
@@ -369,7 +502,7 @@ namespace SNT {
         m_bumperSub = m_nh.subscribe("bumper", 1, &PathFollower::bumperCallback, this);
         m_footContactSub = m_nh.subscribe("foot_contact", 1, &PathFollower::footContactCallback, this);
 
-        m_cmdPosePub       = m_nh.advertise<geometry_msgs::Pose2D>("cmd_pose", 10);
+        m_cmdPosePub       = m_nh.advertise<geometry_msgs::Pose2D>("cmd_pose", 1);
         m_moveBaseGoalPub  = m_nh.advertise<move_base_msgs::MoveBaseActionGoal>("move_base/goal", 1);
         m_visTargetPosePub = m_nh.advertise<geometry_msgs::PoseStamped>("target_pose", 1);
         m_visPathPub       = m_nh.advertise<nav_msgs::Path>("path", 1);
@@ -378,8 +511,13 @@ namespace SNT {
         
         m_bodyPoseActionClient.waitForServer();
 
+        m_moveBaseActionServer.registerPreemptCallback(boost::bind(&PathFollower::moveBasePreemptCallback, this));
+        m_followPathActionServer.registerPreemptCallback(boost::bind(&PathFollower::followPathPreemptCallback, this));
+
+
         m_moveBaseActionServer.start();
         m_followPathActionServer.start();
+
 
         ros::spin();
       }

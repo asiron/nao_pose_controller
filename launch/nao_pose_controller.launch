@@ -1,3 +1,4 @@
+
 <launch> 
 
   <arg name="nao_name"/>
@@ -8,11 +9,13 @@
 
     <param name="x_tolerance"   value="0.07" type="double"/>
     <param name="y_tolerance"   value="0.07" type="double"/>
-    <param name="yaw_tolerance" value="0.25"  type="double"/>
+    <param name="yaw_tolerance" value="0.15"  type="double"/>
 
     <param name="next_goal_x_accept_treshold"   value="0.15" type="double"/>
     <param name="next_goal_y_accept_treshold"   value="0.15" type="double"/>
     <param name="next_goal_yaw_accept_treshold" value="0.2"  type="double"/>
+
+    <param name="subgoal_min_dis" value="0.2" type="double" />
 
     <param name="tf_polling_freq" value="30" type="str"/>
 
